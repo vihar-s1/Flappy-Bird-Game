@@ -97,12 +97,12 @@ def isCollision(playerX, playerY, upperPipes, lowerPipes):
     pipeHeight = __SPRITES['pipe'][0].get_height()
         
     for pipe in upperPipes:    
-        if playerY < pipeHeight + pipe['y'] and (abs(playerX - pipe['x']) < __SPRITES['pipe'][0].get_width()):
+        if playerY < pipeHeight + pipe['y'] and (abs(playerX - pipe['x']) < __SPRITES['player'].get_width()):
             __AUDIO['hit'].play()
             return True
     
     for pipe in lowerPipes:   
-        if playerY + __SPRITES['player'].get_height() > pipe['y'] and (abs(playerX - pipe['x']) < __SPRITES['pipe'][1].get_width()):
+        if playerY + __SPRITES['player'].get_height() > pipe['y'] and (abs(playerX - pipe['x']) < __SPRITES['player'].get_width()):
             __AUDIO['hit'].play()
             return True
         
