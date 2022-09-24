@@ -90,7 +90,7 @@ def generatePipe():
     return pipes
 
 def isCollision(playerX, playerY, upperPipes, lowerPipes):
-    if playerY > __GROUNDY - 25 or playerY < 0:
+    if playerY >= __GROUNDY - __SPRITES['player'].get_height() or playerY < 0:
         __AUDIO['hit'].play()
         return True
     
