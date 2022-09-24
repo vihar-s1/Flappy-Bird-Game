@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from os import getrandom
 from subprocess import PIPE
 import pygame, random, sys
 from pygame.locals import *
@@ -88,6 +87,26 @@ def generatePipe():
         {'x':pipeX, 'y':-y1}, # Upper
         {'x':pipeX, 'y':y2} # Lower
     ]
+    return pipes
+
+def isCollision(playerX, playerY, upperPipes, lowerPipes):
+    if playerY > __GROUNDY - 25 or playerY < 0:
+        __AUDIO['hit'].play()
+        return True
+    
+    pipeHeight = __SPRITES['pipe'][0].get_height()
+        
+    for pipe in upperPipes:    
+        if playerY < pipeHeight + pipe['y'] and (abs(playerX - pipe['x']) < __SPRITES['pipe'][0].get_width()):
+            __AUDIO['hit'].play()
+            return True
+    
+    for pipe in lowerPipes:   
+        if playerY + __SPRITES['player'].get_height() > pipe['y'] and (abs(playerX - pipe['x']) < __SPRITES['pipe'][1].get_width()):
+            __AUDIO['hit'].play()
+            return True
+        
+    return False
 
 
 def __mainGame():
@@ -99,12 +118,13 @@ def __mainGame():
     newPipe1 = generatePipe()
     newPipe2 = generatePipe()
     
+    
     upperPipes = [
         {'x': __DISPLAY_WIDTH + 200, 'y': newPipe1[0]['y']},
-        {'x': __DISPLAY_HEIGHT + 200 + (__DISPLAY_WIDTH//2), 'y': newPipe2[1]['y']}
+        {'x': __DISPLAY_HEIGHT + 200 + (__DISPLAY_WIDTH//2), 'y': newPipe2[0]['y']}
     ]
     lowerPipes = [
-        {'x': __DISPLAY_WIDTH + 200, 'y': newPipe1[0]['y']},
+        {'x': __DISPLAY_WIDTH + 200, 'y': newPipe1[1]['y']},
         {'x': __DISPLAY_HEIGHT + 200 + (__DISPLAY_WIDTH//2), 'y': newPipe2[1]['y']}
     ]
     
@@ -113,7 +133,7 @@ def __mainGame():
     playerMinY = -8
     playerAccY = 1
     
-    playerFlapping_speed = -8 # velocity while flapping
+    playerFlapping_speed = -15 # velocity while flapping
     playerFlapped = False # True when the bird is flappnig
     
     while True:
@@ -123,7 +143,7 @@ def __mainGame():
                 sys.exit()
             elif event.type == KEYDOWN and (event.key in [K_SPACE, K_UP]):
                 if playerY > 0:
-                    playerVelY = playerFlapping_speed
+                    playerY_speed += playerFlapping_speed
                     playerFlapped = True
                     __AUDIO['wing'].play()
         
@@ -131,22 +151,22 @@ def __mainGame():
         if crashed:
             return
 
-        playerMidPos = playerX + __SPRITES['player'].get_width/2
+        playerMidPos = playerX + __SPRITES['player'].get_width()/2
         for pipe in upperPipes:
             pipeMidPos = pipe['x'] + __SPRITES['pipe'][0].get_width()/2
             if pipeMidPos <= playerMidPos < pipeMidPos + 4:
                 score += 1
                 print(f"score: {score}")
-            __AUDIO['point'].play()
+                __AUDIO['point'].play()
         
-        if playerVelY < playerMaxY and not playerFlapped:
-            playerVelY += playerAccY
+        if playerY_speed < playerMaxY and not playerFlapped:
+            playerY_speed += playerAccY
         
         if playerFlapped:
             playerFlapped = False
         
         playerHeight = __SPRITES['player'].get_height()
-        playerY += min(playerVelY, __GROUNDY - playerY - playerHeight)
+        playerY += min(playerY_speed, __GROUNDY - playerY - playerHeight)
             
         for upperPipe, lowerPipe in zip(upperPipes, lowerPipes):
             upperPipe['x'] += pipeX_Speed
@@ -156,7 +176,7 @@ def __mainGame():
         if 0 < upperPipes[0]['x'] < 5:
             newPipe = generatePipe()
             upperPipes.append(newPipe[0])
-            lowerPipe.append(newPipe[1])
+            lowerPipes.append(newPipe[1])
         
         # if the pipe is out of the screen, remove it
         if upperPipes[0]['x'] < -__SPRITES['pipe'][0].get_width():
@@ -164,15 +184,26 @@ def __mainGame():
             lowerPipes.pop(0)
             
         __DISPLAY.blit(__SPRITES['background'], (0, 0))
-        __DISPLAY.blit(__SPRITES['base'], (baseX, __GROUNDY))
-        __DISPLAY.blit(__SPRITES['player'], (playerX, playerY))
         
         for upperPipe, lowerPipe in zip(upperPipes, lowerPipes):
             __DISPLAY.blit( __SPRITES['pipe'][0], (upperPipe['x'], upperPipe['y']) )
             __DISPLAY.blit( __SPRITES['pipe'][1], (lowerPipe['x'], lowerPipe['y']) )
         
+        __DISPLAY.blit(__SPRITES['base'], (baseX, __GROUNDY))
+        __DISPLAY.blit(__SPRITES['player'], (playerX, playerY))
+        
+        scoreDigits = list(map(int, list(str(score))))
+        width = 0
+        for digit in scoreDigits:
+            width += __SPRITES['numbers'][digit].get_width()
             
-            
+        Xoffset = (__DISPLAY_WIDTH - width) // 2
+        for digit in scoreDigits:
+            __DISPLAY.blit(__SPRITES['numbers'][digit], (Xoffset, __DISPLAY_HEIGHT * 0.12))
+            Xoffset += __SPRITES['numbers'][digit].get_width()
+        
+        pygame.display.update()   
+        __FPSCLOCK.tick(__FPS)        
 
 def run():
     '''Starts running the game by setting up pygame window and running the mainloop '''
@@ -181,11 +212,11 @@ def run():
     __FPSCLOCK = pygame.time.Clock()
     pygame.display.set_caption('Flappy Bird With Python')
 
-    __AUDIO['die.wav'] = pygame.mixer.Sound('./audio/die.wav')
-    __AUDIO['hit.wav'] = pygame.mixer.Sound('./audio/hit.wav')
-    __AUDIO['point.wav'] = pygame.mixer.Sound('./audio/point.wav')
-    __AUDIO['swoosh.wav'] = pygame.mixer.Sound('./audio/swoosh.wav')
-    __AUDIO['wing.wav'] = pygame.mixer.Sound('./audio/wing.wav')
+    __AUDIO['die'] = pygame.mixer.Sound('./audio/die.wav')
+    __AUDIO['hit'] = pygame.mixer.Sound('./audio/hit.wav')
+    __AUDIO['point'] = pygame.mixer.Sound('./audio/point.wav')
+    __AUDIO['swoosh'] = pygame.mixer.Sound('./audio/swoosh.wav')
+    __AUDIO['wing'] = pygame.mixer.Sound('./audio/wing.wav')
 
     while True:
         __welcomScreen()
