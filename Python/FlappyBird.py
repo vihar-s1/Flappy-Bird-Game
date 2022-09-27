@@ -4,10 +4,15 @@ from subprocess import PIPE
 import pygame, random, sys
 from pygame.locals import *
     
-    
+
+#-------------------------------------------------------------------------------------------------#
+#---------------------------------------- DEFINING PATHS -----------------------------------------#
+#-------------------------------------------------------------------------------------------------#
+
 #! GLOBAL VARIABLES
 __FPS = 32
 __DISPLAY_WIDTH, __DISPLAY_HEIGHT = 289, 511
+__HIGH_SCORE = 0
 
 __DISPLAY = pygame.display.set_mode((__DISPLAY_WIDTH, __DISPLAY_HEIGHT))
 __GROUNDY = __DISPLAY_HEIGHT * 0.8
@@ -45,6 +50,10 @@ __SPRITES = {
 __AUDIO = {}
   
 
+#--------------------------------------------------------------------------------------------------#
+#----------------------------------------- GAME FUNCTIONS -----------------------------------------#
+#--------------------------------------------------------------------------------------------------#
+
 def __welcomScreen():  
     '''Shows welcome image on the screen'''
     playerx = __DISPLAY_WIDTH // 6
@@ -62,18 +71,30 @@ def __welcomScreen():
                 sys.exit()
             
             # if the user presses the space key, start game
-            elif event.type == KEYDOWN and event.key == K_SPACE:
+            elif event.type == KEYDOWN and event.key in [K_SPACE, K_UP]:
                 return
             else:
                 __DISPLAY.blit(__SPRITES['background'], (0, 0))
                 __DISPLAY.blit(__SPRITES['player'], (playerx, playery))
                 __DISPLAY.blit(__SPRITES['message'], (messagex, messagey))
                 __DISPLAY.blit(__SPRITES['base'], (basex, __GROUNDY))
+                
+                # Displaying the high score
+                scoreDigits = list(map(int, list(str(__HIGH_SCORE))))
+                width = 0
+                for digit in scoreDigits:
+                    width += __SPRITES['numbers'][digit].get_width()
+                    
+                Xoffset = (__DISPLAY_WIDTH - width) // 2
+                for digit in scoreDigits:
+                    __DISPLAY.blit(__SPRITES['numbers'][digit], (Xoffset, __DISPLAY_HEIGHT * 0.88))
+                    Xoffset += __SPRITES['numbers'][digit].get_width()
+        
                 pygame.display.update()
                 __FPSCLOCK.tick(__FPS)
     
 
-def generatePipe():
+def __generatePipe():
     '''
     Generates positional coordinate for the upper and lower pipes
     '''
@@ -89,7 +110,7 @@ def generatePipe():
     ]
     return pipes
 
-def isCollision(playerX, playerY, upperPipes, lowerPipes):
+def __isCollision(playerX, playerY, upperPipes, lowerPipes):
     if playerY >= __GROUNDY - __SPRITES['player'].get_height() or playerY < 0:
         __AUDIO['hit'].play()
         return True
@@ -110,22 +131,20 @@ def isCollision(playerX, playerY, upperPipes, lowerPipes):
 
 
 def __mainGame():
+    global __HIGH_SCORE
     score = 0
     playerX = __DISPLAY_WIDTH // 5
     playerY = __DISPLAY_HEIGHT // 2
     baseX = 0
 
-    newPipe1 = generatePipe()
-    newPipe2 = generatePipe()
+    newPipe1 = __generatePipe()
     
     
     upperPipes = [
         {'x': __DISPLAY_WIDTH + 200, 'y': newPipe1[0]['y']},
-        {'x': __DISPLAY_HEIGHT + 200 + (__DISPLAY_WIDTH//2), 'y': newPipe2[0]['y']}
     ]
     lowerPipes = [
         {'x': __DISPLAY_WIDTH + 200, 'y': newPipe1[1]['y']},
-        {'x': __DISPLAY_HEIGHT + 200 + (__DISPLAY_WIDTH//2), 'y': newPipe2[1]['y']}
     ]
     
     pipeX_Speed, playerY_speed = -4, -9
@@ -147,7 +166,7 @@ def __mainGame():
                     playerFlapped = True
                     __AUDIO['wing'].play()
         
-        crashed = isCollision(playerX, playerY, upperPipes, lowerPipes)
+        crashed = __isCollision(playerX, playerY, upperPipes, lowerPipes)
         if crashed:
             return
 
@@ -156,7 +175,8 @@ def __mainGame():
             pipeMidPos = pipe['x'] + __SPRITES['pipe'][0].get_width()/2
             if pipeMidPos <= playerMidPos < pipeMidPos + 4:
                 score += 1
-                print(f"score: {score}")
+                
+                __HIGH_SCORE = max(__HIGH_SCORE, score)
                 __AUDIO['point'].play()
         
         if playerY_speed < playerMaxY and not playerFlapped:
@@ -174,7 +194,7 @@ def __mainGame():
         
         # add a new pipe when the first is about to cross the leftmost part of the screen
         if 0 < upperPipes[0]['x'] < 5:
-            newPipe = generatePipe()
+            newPipe = __generatePipe()
             upperPipes.append(newPipe[0])
             lowerPipes.append(newPipe[1])
         
@@ -192,6 +212,7 @@ def __mainGame():
         __DISPLAY.blit(__SPRITES['base'], (baseX, __GROUNDY))
         __DISPLAY.blit(__SPRITES['player'], (playerX, playerY))
         
+        # displaying the score of the game
         scoreDigits = list(map(int, list(str(score))))
         width = 0
         for digit in scoreDigits:
@@ -205,6 +226,7 @@ def __mainGame():
         pygame.display.update()   
         __FPSCLOCK.tick(__FPS)        
 
+ 
 def run():
     '''Starts running the game by setting up pygame window and running the mainloop '''
     pygame.init()
