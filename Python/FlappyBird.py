@@ -1,9 +1,21 @@
 #!/usr/bin/env python
 
-from subprocess import PIPE
 import pygame, random, sys
 from pygame.locals import *
-    
+from os import path
+
+#-------------------------------------------------------------------------------------------------#
+#------------------- DEFINING RESOURCE LOCATIONS FOR MAKING IT CONVERTIBLE TO EXE ----------------#
+#-------------------------------------------------------------------------------------------------#
+def resource_path(relative_path: str):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception as e:
+        base_path = path.abspath(".")
+
+    return path.join(base_path, relative_path)
 
 #-------------------------------------------------------------------------------------------------#
 #---------------------------------------- DEFINING PATHS -----------------------------------------#
@@ -17,32 +29,34 @@ __HIGH_SCORE = 0
 __DISPLAY = pygame.display.set_mode((__DISPLAY_WIDTH, __DISPLAY_HEIGHT))
 __GROUNDY = __DISPLAY_HEIGHT * 0.8
 
-PLAYER_PATH =  'Sprites/bird.png'
-BACKGROUND_PATH = 'Sprites/background.png'
-PIPE_PATH = 'Sprites/pipe.png '
+PLAYER_PATH =  resource_path('Sprites/bird.png')
+BACKGROUND_PATH = resource_path('Sprites/background.png')
+PIPE_PATH = resource_path('Sprites/pipe.png ')
 
 #. Dictionary containing refernce to all the sprites to be used in the game
 __SPRITES = {
     'player' : pygame.image.load(PLAYER_PATH).convert_alpha(),
     'background' : pygame.image.load(BACKGROUND_PATH).convert_alpha(),
     
-    'message' : pygame.image.load('Sprites/message.png').convert_alpha(),
-    'base' : pygame.image.load('Sprites/base.png').convert_alpha(),
+    'message' : pygame.image.load( resource_path('Sprites/message.png') ).convert_alpha(),
+    'base' : pygame.image.load( resource_path('Sprites/base.png') ).convert_alpha(),
     
-    'pipe' : (pygame.transform.rotate(pygame.image.load(PIPE_PATH).convert_alpha(), 180),
+    'highScore' : pygame.image.load( resource_path('Sprites/highScore.png') ).convert_alpha(),
+    
+    'pipe' : (pygame.transform.rotate(pygame.image.load( resource_path(PIPE_PATH) ).convert_alpha(), 180),
               pygame.image.load(PIPE_PATH).convert_alpha(),
               ),
         
-    'numbers' : (pygame.image.load('Sprites/0.png').convert_alpha(),
-                 pygame.image.load('Sprites/1.png').convert_alpha(),
-                 pygame.image.load('Sprites/2.png').convert_alpha(),
-                 pygame.image.load('Sprites/3.png').convert_alpha(),
-                 pygame.image.load('Sprites/4.png').convert_alpha(),
-                 pygame.image.load('Sprites/5.png').convert_alpha(),
-                 pygame.image.load('Sprites/6.png').convert_alpha(),
-                 pygame.image.load('Sprites/7.png').convert_alpha(),
-                 pygame.image.load('Sprites/8.png').convert_alpha(),
-                 pygame.image.load('Sprites/9.png').convert_alpha(),
+    'numbers' : (pygame.image.load( resource_path('Sprites/0.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/1.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/2.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/3.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/4.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/5.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/6.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/7.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/8.png') ).convert_alpha(),
+                 pygame.image.load( resource_path('Sprites/9.png') ).convert_alpha(),
                  )
 }
   
@@ -81,11 +95,18 @@ def __welcomScreen():
                 
                 # Displaying the high score
                 scoreDigits = list(map(int, list(str(__HIGH_SCORE))))
-                width = 0
+                
+                width = __SPRITES['highScore'].get_width()
+                
                 for digit in scoreDigits:
                     width += __SPRITES['numbers'][digit].get_width()
                     
                 Xoffset = (__DISPLAY_WIDTH - width) // 2
+                
+                        
+                __DISPLAY.blit(__SPRITES['highScore'], (Xoffset, __DISPLAY_HEIGHT * 0.88))
+                Xoffset += __SPRITES['highScore'].get_width()
+                
                 for digit in scoreDigits:
                     __DISPLAY.blit(__SPRITES['numbers'][digit], (Xoffset, __DISPLAY_HEIGHT * 0.88))
                     Xoffset += __SPRITES['numbers'][digit].get_width()
@@ -99,7 +120,7 @@ def __generatePipe():
     Generates positional coordinate for the upper and lower pipes
     '''
     pipeHeight = __SPRITES['pipe'][0].get_height()
-    offset = __DISPLAY_HEIGHT // 3
+    offset = __DISPLAY_HEIGHT // 4
     y2 = offset + random.randrange(0, int(__DISPLAY_HEIGHT - __SPRITES['base'].get_height() - 1.2*offset))
     pipeX = __DISPLAY_WIDTH + 10
     y1 = pipeHeight - y2 + offset
@@ -234,11 +255,11 @@ def run():
     __FPSCLOCK = pygame.time.Clock()
     pygame.display.set_caption('Flappy Bird With Python')
 
-    __AUDIO['die'] = pygame.mixer.Sound('./audio/die.wav')
-    __AUDIO['hit'] = pygame.mixer.Sound('./audio/hit.wav')
-    __AUDIO['point'] = pygame.mixer.Sound('./audio/point.wav')
-    __AUDIO['swoosh'] = pygame.mixer.Sound('./audio/swoosh.wav')
-    __AUDIO['wing'] = pygame.mixer.Sound('./audio/wing.wav')
+    __AUDIO['die'] = pygame.mixer.Sound( resource_path('./audio/die.wav') )
+    __AUDIO['hit'] = pygame.mixer.Sound( resource_path('./audio/hit.wav') )
+    __AUDIO['point'] = pygame.mixer.Sound( resource_path('./audio/point.wav') )
+    __AUDIO['swoosh'] = pygame.mixer.Sound( resource_path('./audio/swoosh.wav') )
+    __AUDIO['wing'] = pygame.mixer.Sound( resource_path('./audio/wing.wav') )
 
     while True:
         __welcomScreen()
