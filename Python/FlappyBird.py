@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from pickle import GLOBAL
 import pygame, random, sys
 from pygame.locals import *
 from os import path
@@ -18,20 +19,26 @@ def resource_path(relative_path: str):
     return path.join(base_path, relative_path)
 
 #-------------------------------------------------------------------------------------------------#
-#---------------------------------------- DEFINING PATHS -----------------------------------------#
+#--------------------------------------- GLOBAL VARIABLES ----------------------------------------#
 #-------------------------------------------------------------------------------------------------#
 
-#! GLOBAL VARIABLES
 __FPS = 32
 __DISPLAY_WIDTH, __DISPLAY_HEIGHT = 289, 511
 __HIGH_SCORE = 0
 
 __DISPLAY = pygame.display.set_mode((__DISPLAY_WIDTH, __DISPLAY_HEIGHT))
 __GROUNDY = __DISPLAY_HEIGHT * 0.8
+__PIPE_GAP = __DISPLAY_HEIGHT // 3  # intial distance between two pipes
+__PIPE_MIN_GAP = __DISPLAY_HEIGHT // 5 # minimum distance between two pipes
+__PIPE_CLOSING_RATE = -10
 
 PLAYER_PATH =  resource_path('Sprites/bird.png')
 BACKGROUND_PATH = resource_path('Sprites/background.png')
 PIPE_PATH = resource_path('Sprites/pipe.png ')
+
+#-------------------------------------------------------------------------------------------------#
+#------------------------ DICTIONARIES CONTAINING SPRITES AND AUDIO FILES ------------------------#
+#-------------------------------------------------------------------------------------------------#
 
 #. Dictionary containing refernce to all the sprites to be used in the game
 __SPRITES = {
@@ -119,11 +126,15 @@ def __generatePipe():
     '''
     Generates positional coordinate for the upper and lower pipes
     '''
+    # need declare that __PIPE_GAP is a global variable before changing inside function
+    global __PIPE_GAP
+     
     pipeHeight = __SPRITES['pipe'][0].get_height()
-    offset = __DISPLAY_HEIGHT // 4
-    y2 = offset + random.randrange(0, int(__DISPLAY_HEIGHT - __SPRITES['base'].get_height() - 1.2*offset))
+    y2 = __PIPE_GAP + random.randrange(0, int(__DISPLAY_HEIGHT - __SPRITES['base'].get_height() - 1.2*__PIPE_GAP))
     pipeX = __DISPLAY_WIDTH + 10
-    y1 = pipeHeight - y2 + offset
+    y1 = pipeHeight - y2 + __PIPE_GAP
+    
+    __PIPE_GAP = max(__PIPE_MIN_GAP, __PIPE_GAP + __PIPE_CLOSING_RATE)
     
     pipes = [
         {'x':pipeX, 'y':-y1}, # Upper
@@ -152,11 +163,12 @@ def __isCollision(playerX, playerY, upperPipes, lowerPipes):
 
 
 def __mainGame():
-    global __HIGH_SCORE
+    global __HIGH_SCORE, __PIPE_GAP
     score = 0
     playerX = __DISPLAY_WIDTH // 5
     playerY = __DISPLAY_HEIGHT // 2
     baseX = 0
+    __PIPE_GAP = __DISPLAY_HEIGHT // 3 # Reseting the pipe gap to original distance
 
     newPipe1 = __generatePipe()
     
@@ -172,6 +184,9 @@ def __mainGame():
     playerMaxY = 10
     playerMinY = -8
     playerAccY = 1
+    
+    pipeX_MinSpeed = -10
+    pipeAccX = -1
     
     playerFlapping_speed = -15 # velocity while flapping
     playerFlapped = False # True when the bird is flappnig
@@ -214,15 +229,19 @@ def __mainGame():
             lowerPipe['x'] += pipeX_Speed
         
         # add a new pipe when the first is about to cross the leftmost part of the screen
-        if 0 < upperPipes[0]['x'] < 5:
-            newPipe = __generatePipe()
-            upperPipes.append(newPipe[0])
-            lowerPipes.append(newPipe[1])
+        # if 0 < upperPipes[0]['x'] < 5:
+        #     newPipe = __generatePipe()
+        #     upperPipes.append(newPipe[0])
+        #     lowerPipes.append(newPipe[1])
         
         # if the pipe is out of the screen, remove it
         if upperPipes[0]['x'] < -__SPRITES['pipe'][0].get_width():
             upperPipes.pop(0)
             lowerPipes.pop(0)
+            # Add a new pipe after removing the leftmost pipe.
+            newPipe = __generatePipe()
+            upperPipes.append(newPipe[0])
+            lowerPipes.append(newPipe[1])
             
         __DISPLAY.blit(__SPRITES['background'], (0, 0))
         
