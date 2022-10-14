@@ -36,6 +36,11 @@ PLAYER_PATH =  resource_path('Sprites/bird.png')
 BACKGROUND_PATH = resource_path('Sprites/background.png')
 PIPE_PATH = resource_path('Sprites/pipe.png ')
 
+__PIPEX_SPEED = -4
+__PIPEX_MINSPEED = -10
+__PIPEX_ACC = -1
+    
+
 #-------------------------------------------------------------------------------------------------#
 #------------------------ DICTIONARIES CONTAINING SPRITES AND AUDIO FILES ------------------------#
 #-------------------------------------------------------------------------------------------------#
@@ -127,20 +132,22 @@ def __generatePipe():
     Generates positional coordinate for the upper and lower pipes
     '''
     # need declare that __PIPE_GAP is a global variable before changing inside function
-    global __PIPE_GAP
+    global __PIPE_GAP, __PIPEX_SPEED
      
     pipeHeight = __SPRITES['pipe'][0].get_height()
     y2 = __PIPE_GAP + random.randrange(0, int(__DISPLAY_HEIGHT - __SPRITES['base'].get_height() - 1.2*__PIPE_GAP))
-    pipeX = __DISPLAY_WIDTH + 10
+    pipeX = __DISPLAY_WIDTH + (2 * abs( __PIPEX_SPEED))
     y1 = pipeHeight - y2 + __PIPE_GAP
     
     __PIPE_GAP = max(__PIPE_MIN_GAP, __PIPE_GAP + __PIPE_CLOSING_RATE)
+    __PIPEX_SPEED = max(__PIPEX_MINSPEED, __PIPEX_SPEED + __PIPEX_ACC)
     
     pipes = [
         {'x':pipeX, 'y':-y1}, # Upper
         {'x':pipeX, 'y':y2} # Lower
     ]
     return pipes
+
 
 def __isCollision(playerX, playerY, upperPipes, lowerPipes):
     if playerY >= __GROUNDY - __SPRITES['player'].get_height() or playerY < 0:
@@ -163,7 +170,7 @@ def __isCollision(playerX, playerY, upperPipes, lowerPipes):
 
 
 def __mainGame():
-    global __HIGH_SCORE, __PIPE_GAP
+    global __HIGH_SCORE, __PIPE_GAP, __PIPEX_SPEED
     score = 0
     playerX = __DISPLAY_WIDTH // 5
     playerY = __DISPLAY_HEIGHT // 2
@@ -174,19 +181,16 @@ def __mainGame():
     
     
     upperPipes = [
-        {'x': __DISPLAY_WIDTH + 200, 'y': newPipe1[0]['y']},
+        {'x': __DISPLAY_WIDTH + 50 * abs(__PIPEX_SPEED), 'y': newPipe1[0]['y']},
     ]
     lowerPipes = [
-        {'x': __DISPLAY_WIDTH + 200, 'y': newPipe1[1]['y']},
+        {'x': __DISPLAY_WIDTH + 50 * abs(__PIPEX_SPEED), 'y': newPipe1[1]['y']},
     ]
     
-    pipeX_Speed, playerY_speed = -4, -9
-    playerMaxY = 10
-    playerMinY = -8
-    playerAccY = 1
-    
-    pipeX_MinSpeed = -10
-    pipeAccX = -1
+    __PIPEX_SPEED, playerY_speed = -4, -9
+    playerY_max = 10
+    playerY_min = -8
+    playerY_acc = 1
     
     playerFlapping_speed = -15 # velocity while flapping
     playerFlapped = False # True when the bird is flappnig
@@ -209,24 +213,25 @@ def __mainGame():
         playerMidPos = playerX + __SPRITES['player'].get_width()/2
         for pipe in upperPipes:
             pipeMidPos = pipe['x'] + __SPRITES['pipe'][0].get_width()/2
-            if pipeMidPos <= playerMidPos < pipeMidPos + 4:
+            if pipeMidPos <= playerMidPos < pipeMidPos + abs(__PIPEX_SPEED):
                 score += 1
                 
                 __HIGH_SCORE = max(__HIGH_SCORE, score)
                 __AUDIO['point'].play()
         
-        if playerY_speed < playerMaxY and not playerFlapped:
-            playerY_speed += playerAccY
+        if playerY_speed < playerY_max and not playerFlapped:
+            playerY_speed += playerY_acc
         
         if playerFlapped:
             playerFlapped = False
         
         playerHeight = __SPRITES['player'].get_height()
         playerY += min(playerY_speed, __GROUNDY - playerY - playerHeight)
+        
             
         for upperPipe, lowerPipe in zip(upperPipes, lowerPipes):
-            upperPipe['x'] += pipeX_Speed
-            lowerPipe['x'] += pipeX_Speed
+            upperPipe['x'] += __PIPEX_SPEED
+            lowerPipe['x'] += __PIPEX_SPEED
         
         # add a new pipe when the first is about to cross the leftmost part of the screen
         # if 0 < upperPipes[0]['x'] < 5:
